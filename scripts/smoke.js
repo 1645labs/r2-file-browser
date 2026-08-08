@@ -84,6 +84,18 @@ async function main() {
   data = await res.json();
   assert(data.files.some((f) => f.name === "pixel.png"), "subfolder listing shows pixel.png");
 
+  // If the bucket is public (S3_PUBLIC_BASE_URL set), list items carry a direct
+  // public url. Fetch it anonymously (no cookie) and verify the bytes.
+  const pixel = data.files.find((f) => f.name === "pixel.png");
+  if (pixel && pixel.url) {
+    const pub = await fetch(pixel.url);
+    const pubBytes = Buffer.from(await pub.arrayBuffer());
+    assert(pubBytes.equals(PNG), "public url serves image bytes anonymously");
+    assert((pub.headers.get("content-type") || "").includes("image"), "public url content-type is image/*");
+  } else {
+    console.log("ok  - (public base URL not set; skipping public-url check)");
+  }
+
   // View image -> presigned redirect -> fetch actual bytes
   res = await req("/api/view?key=smoke-photos/pixel.png");
   assert(res.status === 302 && res.headers.get("location"), "view returns presigned redirect");

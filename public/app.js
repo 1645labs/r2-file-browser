@@ -203,11 +203,16 @@ function folderCard(folder) {
   return card;
 }
 
+// Prefer the direct public URL (public bucket) for reads; else the presigned proxy.
+function viewUrl(file) {
+  return file.url || `/api/view?key=${encodeURIComponent(file.key)}`;
+}
+
 function fileCard(file) {
   const card = document.createElement("div");
   card.className = "card file";
   const thumb = isImage(file.name)
-    ? `<div class="card-thumb"><img loading="lazy" src="/api/view?key=${encodeURIComponent(file.key)}" alt="" onerror="this.parentNode.textContent='🖼️'"/></div>`
+    ? `<div class="card-thumb"><img loading="lazy" src="${viewUrl(file)}" alt="" onerror="this.parentNode.textContent='🖼️'"/></div>`
     : `<div class="card-thumb">${iconFor(file.name)}</div>`;
   card.innerHTML = `
     ${thumb}
@@ -277,7 +282,7 @@ $("btn-new-folder").addEventListener("click", async () => {
 // Viewer (image / video / audio / pdf)
 // ---------------------------------------------------------------------------
 function openFile(file) {
-  const url = `/api/view?key=${encodeURIComponent(file.key)}`;
+  const url = viewUrl(file);
   const e = ext(file.name);
   const body = $("viewer-body");
   body.innerHTML = "";

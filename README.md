@@ -32,6 +32,7 @@ Copy `.env.example` to `.env` and fill in your R2 details:
 | `S3_REGION` | `auto` for R2 |
 | `S3_BUCKET` | bucket to browse |
 | `S3_ACCESS_KEY_ID` / `S3_SECRET_ACCESS_KEY` | from an R2 API token |
+| `S3_PUBLIC_BASE_URL` | public bucket base URL (assumes the bucket is public), e.g. `https://pub-<hash>.r2.dev` or a custom domain. Reads are served directly from here; leave blank to use presigned proxy URLs |
 | `APP_PASSWORD` | optional; gate the app behind a password |
 | `PRESIGN_TTL` | presigned URL lifetime, seconds (default 300) |
 

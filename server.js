@@ -29,6 +29,10 @@ const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
 const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
 const APP_PASSWORD = process.env.APP_PASSWORD || ""; // optional gate
 const PRESIGN_TTL = Number(process.env.PRESIGN_TTL || 300); // seconds
+// Public bucket base URL (R2 r2.dev URL or custom domain). When set, reads
+// (thumbnails, image/media viewing) go straight to the public URL instead of
+// server-proxied presigned URLs. Writes/listing still use the S3 credentials.
+const PUBLIC_BASE = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
 
 const configured = Boolean(BUCKET && ENDPOINT && ACCESS_KEY_ID && SECRET_ACCESS_KEY);
 
@@ -78,6 +82,13 @@ function keyOk(key) {
   if (typeof key !== "string" || key.length === 0) return false;
   if (key.split("/").some((seg) => seg === "..")) return false;
   return true;
+}
+
+// Build a direct public URL for a key when a public base is configured.
+function publicUrl(key) {
+  if (!PUBLIC_BASE) return null;
+  const encoded = key.split("/").map(encodeURIComponent).join("/");
+  return `${PUBLIC_BASE}/${encoded}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,12 +147,12 @@ app.use("/api", (req, res, next) => {
 });
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, configured, authRequired: Boolean(APP_PASSWORD) });
+  res.json({ ok: true, configured, authRequired: Boolean(APP_PASSWORD), publicBase: Boolean(PUBLIC_BASE) });
 });
 
 // Whether the client currently has access (drives the login screen).
 app.get("/api/session", (req, res) => {
-  res.json({ authed: authed(req), authRequired: Boolean(APP_PASSWORD), configured });
+  res.json({ authed: authed(req), authRequired: Boolean(APP_PASSWORD), configured, publicBase: Boolean(PUBLIC_BASE) });
 });
 
 // List folders + files under a prefix.
@@ -175,6 +186,7 @@ app.get("/api/list", async (req, res) => {
           name,
           size: obj.Size,
           lastModified: obj.LastModified,
+          url: publicUrl(obj.Key),
         });
       }
       ContinuationToken = out.IsTruncated ? out.NextContinuationToken : undefined;
