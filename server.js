@@ -22,17 +22,28 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Config
 // ---------------------------------------------------------------------------
 const PORT = process.env.PORT || 3000;
-const BUCKET = process.env.S3_BUCKET;
-const ENDPOINT = process.env.S3_ENDPOINT; // e.g. https://<accountid>.r2.cloudflarestorage.com
-const REGION = process.env.S3_REGION || "auto";
-const ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
-const SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
+
+// Accept both the S3_* names and Cloudflare's own R2 dashboard names.
+const env = (...names) => {
+  for (const n of names) {
+    if (process.env[n]) return process.env[n];
+  }
+  return undefined;
+};
+const ACCOUNT_ID = env("R2_ACCOUNT_ID", "ACCOUNT_ID");
+const BUCKET = env("S3_BUCKET", "R2_BUCKET", "BUCKET");
+const ENDPOINT =
+  env("S3_ENDPOINT", "S3_API_ENDPOINT", "R2_ENDPOINT") ||
+  (ACCOUNT_ID ? `https://${ACCOUNT_ID}.r2.cloudflarestorage.com` : undefined);
+const REGION = env("S3_REGION", "R2_REGION") || "auto";
+const ACCESS_KEY_ID = env("S3_ACCESS_KEY_ID", "ACCESS_KEY_ID", "R2_ACCESS_KEY_ID");
+const SECRET_ACCESS_KEY = env("S3_SECRET_ACCESS_KEY", "SECRET_ACCESS_KEY", "R2_SECRET_ACCESS_KEY");
 const APP_PASSWORD = process.env.APP_PASSWORD || ""; // optional gate
 const PRESIGN_TTL = Number(process.env.PRESIGN_TTL || 300); // seconds
 // Public bucket base URL (R2 r2.dev URL or custom domain). When set, reads
 // (thumbnails, image/media viewing) go straight to the public URL instead of
 // server-proxied presigned URLs. Writes/listing still use the S3 credentials.
-const PUBLIC_BASE = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+const PUBLIC_BASE = (env("S3_PUBLIC_BASE_URL", "R2_PUBLIC_BASE_URL") || "").replace(/\/+$/, "");
 
 const configured = Boolean(BUCKET && ENDPOINT && ACCESS_KEY_ID && SECRET_ACCESS_KEY);
 
