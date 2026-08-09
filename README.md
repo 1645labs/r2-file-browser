@@ -10,7 +10,8 @@ Render as a single Node web service.
 - 📁 Browse folders and subfolders with breadcrumb navigation
 - ⬆ Upload files (button or drag-and-drop) with progress, streamed straight to R2
 - ⬇ Download via short-lived presigned URLs
-- 🖼️ Built-in viewer: images (with grid thumbnails), video, audio, PDF
+- 🖼️ Built-in viewer: images (with grid thumbnails), video, audio, PDF, and text/code files
+- 🔀 List (default) or grid view, remembered across sessions; hover a name for the full filename
 - 🗑 Delete files and folders (recursive)
 - 🔒 Optional shared-password gate (`APP_PASSWORD`)
 

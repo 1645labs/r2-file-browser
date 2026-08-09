@@ -131,6 +131,29 @@ body {
   gap: 10px;
   align-items: center;
 }
+.view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-right: 4px;
+}
+.vt-btn {
+  border: 0;
+  background: var(--surface);
+  color: var(--muted);
+  padding: 8px 12px;
+  font-size: 15px;
+  cursor: pointer;
+  line-height: 1;
+}
+.vt-btn:hover {
+  background: var(--hover);
+}
+.vt-btn.active {
+  background: var(--brand-dark);
+  color: #fff;
+}
 
 .btn {
   display: inline-flex;
@@ -201,10 +224,44 @@ body {
   flex: 1;
   padding: 8px 24px 48px;
 }
-.listing {
+.listing.grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 14px;
+}
+.listing.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+/* List-mode rows reuse the .card markup via CSS grid areas. */
+.listing.list .card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  grid-template-areas: "thumb name actions" "thumb meta actions";
+  align-items: center;
+  column-gap: 14px;
+  padding: 10px 14px;
+}
+.listing.list .card-thumb {
+  grid-area: thumb;
+  height: 44px;
+  width: 44px;
+  font-size: 22px;
+  margin-bottom: 0;
+}
+.listing.list .card-name {
+  grid-area: name;
+  align-self: end;
+}
+.listing.list .card-meta {
+  grid-area: meta;
+  align-self: start;
+  margin-top: 0;
+}
+.listing.list .card-actions {
+  grid-area: actions;
+  position: static;
 }
 .card {
   background: var(--surface);
@@ -420,6 +477,31 @@ body {
 .viewer-fallback {
   color: #fff;
   text-align: center;
+}
+.viewer-text {
+  width: min(1000px, 92vw);
+  max-height: 82vh;
+  overflow: auto;
+  margin: 0;
+  padding: 20px 22px;
+  background: #fff;
+  color: #1f2733;
+  border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  text-align: left;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  tab-size: 2;
+}
+.viewer-truncated {
+  width: min(1000px, 92vw);
+  margin-bottom: 8px;
+  color: #fbe08a;
+  font-size: 12px;
+  text-align: left;
 }
 
 @media (max-width: 600px) {

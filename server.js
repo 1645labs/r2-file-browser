@@ -303,6 +303,32 @@ app.get("/api/view", async (req, res) => {
   }
 });
 
+// Stream a text file's first bytes for in-app preview (same-origin, avoids CORS
+// on public URLs). Range-capped so large files don't download in full.
+const TEXT_PREVIEW_LIMIT = 1024 * 1024; // 1 MB
+app.get("/api/text", async (req, res) => {
+  if (!requireConfigured(res)) return;
+  const key = req.query.key;
+  if (!keyOk(key)) return res.status(400).json({ error: "Invalid key" });
+  try {
+    const out = await s3.send(
+      new GetObjectCommand({
+        Bucket: BUCKET,
+        Key: key,
+        Range: `bytes=0-${TEXT_PREVIEW_LIMIT - 1}`,
+      })
+    );
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    if (out.Body && typeof out.Body.pipe === "function") {
+      out.Body.pipe(res);
+    } else {
+      res.end(Buffer.from(await out.Body.transformToByteArray()));
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Redirect to a presigned URL that forces download.
 app.get("/api/download", async (req, res) => {
   if (!requireConfigured(res)) return;

@@ -111,6 +111,13 @@ async function main() {
   const dlBytes = Buffer.from(await bin.arrayBuffer());
   assert(dlBytes.equals(TXT), "downloaded bytes match uploaded note.txt");
 
+  // Text preview endpoint returns the file content, same-origin.
+  res = await req("/api/text?key=note.txt");
+  assert(res.status === 200, "text preview returns 200");
+  assert((res.headers.get("content-type") || "").includes("text/plain"), "text preview content-type is text/plain");
+  const previewText = await res.text();
+  assert(previewText === TXT.toString(), "text preview body matches uploaded note.txt");
+
   // Delete file
   res = await req("/api/object?key=note.txt", { method: "DELETE" });
   assert(res.ok, "delete note.txt");

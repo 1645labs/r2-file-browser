@@ -5,10 +5,21 @@
 // ---------------------------------------------------------------------------
 const $ = (id) => document.getElementById(id);
 let currentPrefix = ""; // "" = root, otherwise "a/b/"
+let lastData = null; // last listing payload, for re-rendering on view toggle
+let viewMode = localStorage.getItem("rfb_view") || "list"; // "list" (default) | "grid"
 
 const IMAGE_EXT = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "avif"];
 const VIDEO_EXT = ["mp4", "webm", "mov", "m4v", "ogv"];
 const AUDIO_EXT = ["mp3", "wav", "ogg", "m4a", "flac", "aac"];
+const TEXT_EXT = [
+  "txt", "md", "markdown", "log", "csv", "tsv", "json", "jsonl", "ndjson",
+  "js", "mjs", "cjs", "ts", "tsx", "jsx", "css", "scss", "less", "html", "htm",
+  "xml", "svg", "yaml", "yml", "toml", "ini", "cfg", "conf", "env", "properties",
+  "sh", "bash", "zsh", "fish", "ps1", "bat", "py", "rb", "go", "rs", "java",
+  "kt", "c", "h", "cpp", "hpp", "cc", "cs", "php", "pl", "lua", "r", "sql",
+  "gradle", "dockerfile", "makefile", "gitignore", "diff", "patch", "tex",
+];
+const TEXT_PREVIEW_LIMIT = 1024 * 1024; // keep in sync with server /api/text
 
 function ext(name) {
   const i = name.lastIndexOf(".");
@@ -16,6 +27,13 @@ function ext(name) {
 }
 function isImage(name) {
   return IMAGE_EXT.includes(ext(name));
+}
+function isText(name) {
+  const e = ext(name);
+  if (TEXT_EXT.includes(e)) return true;
+  // extension-less common text files (Dockerfile, Makefile, LICENSE, README)
+  if (!e && /^(dockerfile|makefile|license|readme|changelog|authors|notice)$/i.test(name)) return true;
+  return false;
 }
 function iconFor(name) {
   const e = ext(name);
@@ -172,7 +190,9 @@ function showError(msg) {
 }
 
 function renderListing(data) {
+  lastData = data;
   const listing = $("listing");
+  listing.className = "listing " + viewMode;
   listing.innerHTML = "";
   const total = data.folders.length + data.files.length;
   $("empty").classList.toggle("hidden", total > 0);
@@ -184,6 +204,20 @@ function renderListing(data) {
     listing.appendChild(fileCard(file));
   }
 }
+
+function setViewMode(mode) {
+  viewMode = mode === "grid" ? "grid" : "list";
+  localStorage.setItem("rfb_view", viewMode);
+  $("view-list").classList.toggle("active", viewMode === "list");
+  $("view-grid").classList.toggle("active", viewMode === "grid");
+  if (lastData) renderListing(lastData);
+  else $("listing").className = "listing " + viewMode;
+}
+$("view-list").addEventListener("click", () => setViewMode("list"));
+$("view-grid").addEventListener("click", () => setViewMode("grid"));
+// reflect the persisted choice on the toggle at load
+$("view-list").classList.toggle("active", viewMode === "list");
+$("view-grid").classList.toggle("active", viewMode === "grid");
 
 function folderCard(folder) {
   const card = document.createElement("div");
@@ -314,6 +348,31 @@ function openFile(file) {
     f.style.borderRadius = "8px";
     f.style.background = "#fff";
     body.appendChild(f);
+  } else if (isText(file.name)) {
+    const pre = document.createElement("pre");
+    pre.className = "viewer-text";
+    pre.textContent = "Loading…";
+    body.appendChild(pre);
+    fetch(`/api/text?key=${encodeURIComponent(file.key)}`)
+      .then(async (r) => {
+        if (r.status === 401) {
+          closeViewer();
+          showLogin();
+          return;
+        }
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const text = await r.text();
+        pre.textContent = text.length ? text : "(empty file)";
+        if (typeof file.size === "number" && file.size > TEXT_PREVIEW_LIMIT) {
+          const note = document.createElement("div");
+          note.className = "viewer-truncated";
+          note.textContent = `Showing first ${fmtSize(TEXT_PREVIEW_LIMIT)} of ${fmtSize(file.size)}.`;
+          body.insertBefore(note, pre);
+        }
+      })
+      .catch((err) => {
+        pre.textContent = "Could not load preview: " + err.message;
+      });
   } else {
     // Non-previewable: offer download.
     const div = document.createElement("div");
